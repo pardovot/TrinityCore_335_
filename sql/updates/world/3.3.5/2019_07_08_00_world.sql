@@ -1,0 +1,4 @@
+--
+INSERT INTO `world`.`creature_template` (`entry`, `modelid1`, `name`, `subname`, `gossip_menu_id`, `minlevel`, `maxlevel`, `faction`, `npcflag`, `unit_class`, `unit_flags`, `unit_flags2`, `type`, `ScriptName`, `VerifiedBuild`) VALUES ('43283', '15093', 'custom_script', 'custom_script', '55555', '80', '80', '188', '1', '1', '2', '2048', '12', 'custom_script', '12340');
+INSERT INTO `world`.`creature_template` (`entry`, `modelid1`, `name`, `subname`, `gossip_menu_id`, `minlevel`, `maxlevel`, `faction`, `npcflag`, `unit_class`, `unit_flags`, `unit_flags2`, `type`, `ScriptName`, `VerifiedBuild`) VALUES ('43284', '31956', 'custom_handler', 'custom_handler', '0', '80', '80', '188', '0', '1', '0', '2048', '12', 'custom_handler', '12340');
+UPDATE `world`.`spell_area` SET `autocast` = '0' WHERE `spell` = '42202';
