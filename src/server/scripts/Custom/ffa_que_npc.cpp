@@ -31,7 +31,7 @@ enum Options {
 
 enum Misc {
     MAP_ID = 1,
-    QUE_START_COUNTDOWN = 60,
+    //QUE_START_COUNTDOWN = 60,
     MIN_PLAYERS = 10,
     ASK_ME_LATER_DELAY = 30,
     CHECK_DISCONNECT_DELAY = 60,
@@ -73,6 +73,14 @@ public:
                 return _askMeLatertime;
             }
 
+            uint32 GetSendAcceptAgainTime() {
+                return _sendAcceptAgainTime;
+            }
+
+            void SetSendAcceptAgain(uint32 sendAcceptAgainTime) {
+                _sendAcceptAgainTime = sendAcceptAgainTime;
+            }
+
             void SetOfflineTime(uint32 offlineTime) {
                 _offlineTime = offlineTime;
             }
@@ -81,10 +89,20 @@ public:
                 _askMeLatertime = askMeLatertime;
             }
 
+            void SetHasEnteredBG(bool hasEnteredBG) {
+                _hasEnteredBG = hasEnteredBG;
+            }
+
+            bool HasEnteredBG() {
+                return _hasEnteredBG;
+            }
+
         private:
             Player* _player;
             uint32 _offlineTime = 0;
             uint32 _askMeLatertime = 0;
+            uint32 _sendAcceptAgainTime = 0;
+            bool _hasEnteredBG = false;
             bool _hasAcceptSent = false;
         };
 
@@ -92,10 +110,9 @@ public:
             for (QuedPlayer* quedPlayer : _quedPlayers) {
                 CheckDisconnectedPlayers(quedPlayer);
                 if (IsQueReady()) {
+                    CheckAcceptSent(quedPlayer);
                     CheckAskMeLater(quedPlayer);
-                    if (!quedPlayer->HasAcceptSent()) {
-                    SendAcceptTo(quedPlayer);
-                    }
+                    CheckSendAcceptAgain(quedPlayer);
                 }
             }
         }
@@ -184,13 +201,21 @@ public:
             return false;
         }
 
-        //void SendAcceptToAll() {
-        //    for (QuedPlayer* quedPlayer : _quedPlayers) {
-        //        if (!quedPlayer->HasAcceptSent()) {
-        //            SendAcceptTo(quedPlayer);
-        //        }
-        //    }
-        //}
+        void CheckSendAcceptAgain(QuedPlayer* quedPlayer) {
+            if (quedPlayer->GetSendAcceptAgainTime() != 0) {
+                if (quedPlayer->GetSendAcceptAgainTime() + SEND_ACCEPT_DELAY <= std::time(0)) {
+                    SendAcceptTo(quedPlayer);
+                }
+            }
+        }
+
+        bool CheckAcceptSent(QuedPlayer* quedPlayer) {
+            if (!quedPlayer->HasAcceptSent()) {
+                SendAcceptTo(quedPlayer);
+                return true;
+            }
+            return false;
+        }
 
         bool SendAcceptTo(QuedPlayer* quedPlayer) {
             if (!quedPlayer->HasAcceptSent()) {
@@ -235,6 +260,9 @@ public:
         }
 
         bool TeleportPlayerToBG(Player* player) {
+            QuedPlayer* quedPlayer = GetQuedPlayer(player);
+            quedPlayer->SetHasEnteredBG(true);
+            quedPlayer->SetHasAcceptSent(std::time(0));
             if (player) {
                 player->TeleportTo(MAP_ID, _teleportPosition.GetPositionX(), _teleportPosition.GetPositionY(), _teleportPosition.GetPositionZ(), _teleportPosition.GetOrientation());
                 return true;
@@ -280,11 +308,11 @@ public:
 
     private:
         std::vector<QuedPlayer*> _quedPlayers;
-        float _positionX = 4564.0f;
-        float _positionY = -3098.0f;
-        float _positionZ = 995.0f;
-        float _orientation = 0;
-        Position _teleportPosition = { _positionX, _positionY, _positionZ, _orientation };
+        float const _positionX = 4564.0f;
+        float const _positionY = -3098.0f;
+        float const _positionZ = 995.0f;
+        float const _orientation = 0;
+        Position const _teleportPosition = { _positionX, _positionY, _positionZ, _orientation };
     };
 
     CreatureAI* GetAI(Creature* creature) const {
