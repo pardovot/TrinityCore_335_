@@ -1174,7 +1174,7 @@ class spell_sindragosa_unchained_magic : public SpellScript
                 continue;
             }
 
-            switch (player->GetClass())
+            switch (player->getClass())
             {
                 case CLASS_PRIEST:
                 case CLASS_MAGE:

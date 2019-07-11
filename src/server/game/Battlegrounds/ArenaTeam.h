@@ -183,9 +183,6 @@ class TC_GAME_API ArenaTeam
         bool FinishWeek(); // returns true if arena team played this week
         void FinishGame(int32 mod);
 
-        void SetPreviousOpponents(uint32 arenaTeamId) { PreviousOpponents = arenaTeamId; }
-        uint32 GetPreviousOpponents() { return PreviousOpponents; }
-
     protected:
 
         uint32      TeamId;
@@ -201,7 +198,5 @@ class TC_GAME_API ArenaTeam
 
         MemberList     Members;
         ArenaTeamStats Stats;
-
-        uint32 PreviousOpponents;
 };
 #endif

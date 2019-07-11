@@ -26,7 +26,6 @@
 #include "SpellAuraEffects.h"
 #include "SpellInfo.h"
 #include "TemporarySummon.h"
-#include "SpellInfo.h"
 
 enum Says
 {

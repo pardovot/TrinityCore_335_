@@ -46,7 +46,6 @@ EndScriptData */
 bool HandleNpcSpawnGroup(ChatHandler* handler, char const* args);
 bool HandleNpcDespawnGroup(ChatHandler* handler, char const* args);
 
-using namespace Trinity::ChatCommands;
 class gobject_commandscript : public CommandScript
 {
 public:
@@ -345,35 +344,49 @@ public:
     }
 
     //delete object by selection or guid
-    static bool HandleGameObjectDeleteCommand(ChatHandler* handler, Variant<Hyperlink<gameobject>, ObjectGuid::LowType> spawnId)
+    static bool HandleGameObjectDeleteCommand(ChatHandler* handler, char const* args)
     {
-        if (GameObject* object = handler->GetObjectFromPlayerMapByDbGuid(spawnId))
-        {
-            Player const* const player = handler->GetSession()->GetPlayer();
-            if (ObjectGuid ownerGuid = object->GetOwnerGUID())
-            {
-                Unit* owner = ObjectAccessor::GetUnit(*player, ownerGuid);
-                if (!owner || !ownerGuid.IsPlayer())
-                {
-                    handler->PSendSysMessage(LANG_COMMAND_DELOBJREFERCREATURE, ownerGuid.GetCounter(), spawnId);
-                    handler->SetSentErrorMessage(true);
-                    return false;
-                }
-                owner->RemoveGameObject(object, false);
-            }
-        }
+        // number or [name] Shift-click form |color|Hgameobject:go_guid|h[name]|h|r
+        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
+        if (!id)
+            return false;
 
-        if (GameObject::DeleteFromDB(spawnId))
+        ObjectGuid::LowType guidLow = atoul(id);
+        if (!guidLow)
+            return false;
+
+        Player const* const player = handler->GetSession()->GetPlayer();
+        // force respawn to make sure we find something
+        player->GetMap()->ForceRespawn(SPAWN_TYPE_GAMEOBJECT, guidLow);
+        GameObject* object = handler->GetObjectFromPlayerMapByDbGuid(guidLow);
+        if (!object)
         {
-            handler->PSendSysMessage(LANG_COMMAND_DELOBJMESSAGE, spawnId);
-            return true;
-        }
-        else
-        {
-            handler->PSendSysMessage(LANG_COMMAND_OBJNOTFOUND, spawnId);
+            handler->PSendSysMessage(LANG_COMMAND_OBJNOTFOUND, guidLow);
             handler->SetSentErrorMessage(true);
             return false;
         }
+
+        ObjectGuid ownerGuid = object->GetOwnerGUID();
+        if (ownerGuid)
+        {
+            Unit* owner = ObjectAccessor::GetUnit(*player, ownerGuid);
+            if (!owner || !ownerGuid.IsPlayer())
+            {
+                handler->PSendSysMessage(LANG_COMMAND_DELOBJREFERCREATURE, ownerGuid.GetCounter(), guidLow);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+
+            owner->RemoveGameObject(object, false);
+        }
+
+        object->SetRespawnTime(0);                                 // not save respawn time
+        object->Delete();
+        object->DeleteFromDB();
+
+        handler->PSendSysMessage(LANG_COMMAND_DELOBJMESSAGE, object->GetSpawnId());
+
+        return true;
     }
 
     //turn selected object

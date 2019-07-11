@@ -283,10 +283,6 @@ void Arena::EndBattleground(uint32 winner)
                 }
             }
 
-            // update previous opponents for arena queue
-            winnerArenaTeam->SetPreviousOpponents(loserArenaTeam->GetId());
-            loserArenaTeam->SetPreviousOpponents(winnerArenaTeam->GetId());
-
             // save the stat changes
             winnerArenaTeam->SaveToDB();
             loserArenaTeam->SaveToDB();

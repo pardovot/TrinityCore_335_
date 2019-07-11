@@ -696,11 +696,11 @@ SpellAreaForQuestAreaMapBounds SpellMgr::GetSpellAreaForQuestAreaMapBounds(uint3
 bool SpellArea::IsFitToRequirements(Player const* player, uint32 newZone, uint32 newArea) const
 {
     if (gender != GENDER_NONE)                   // is not expected gender
-        if (!player || gender != player->GetNativeGender())
+        if (!player || gender != player->getGender())
             return false;
 
     if (raceMask)                                // is not expected race
-        if (!player || !(raceMask & player->GetRaceMask()))
+        if (!player || !(raceMask & player->getRaceMask()))
             return false;
 
     if (areaId)                                  // is not in expected zone
@@ -3365,8 +3365,9 @@ void SpellMgr::LoadSpellInfoCorrections()
         58121, // Torch
         43109, // Throw Torch
         58552, // Return to Orgrimmar
-        58533, // Return to Stormwind
-        21855  // Challenge Flag
+        58533  // Return to Stormwind
+        
+        
     }, [](SpellInfo* spellInfo)
     {
         spellInfo->MaxAffectedTargets = 1;
@@ -3904,7 +3905,6 @@ void SpellMgr::LoadSpellInfoCorrections()
     });
 
     ApplySpellFix({
-        15538, // Gout of Flame
         42490, // Energized!
         42492, // Cast Energized
         43115  // Plague Vial
@@ -4031,12 +4031,6 @@ void SpellMgr::LoadSpellInfoCorrections()
     }, [](SpellInfo* spellInfo)
     {
         spellInfo->RecoveryTime = 20000;
-    });
-
-    // Summon Frigid Bones
-    ApplySpellFix({ 53525 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->DurationEntry = spellInfo->DurationEntry = sSpellDurationStore.LookupEntry(4); // 2 minutes
     });
 
     //

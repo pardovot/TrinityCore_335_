@@ -1623,15 +1623,15 @@ public:
             accId             = target->GetSession()->GetAccountId();
             money             = target->GetMoney();
             totalPlayerTime   = target->GetTotalPlayedTime();
-            level             = target->GetLevel();
+            level             = target->getLevel();
             latency           = target->GetSession()->GetLatency();
-            raceid            = target->GetRace();
-            classid           = target->GetClass();
+            raceid            = target->getRace();
+            classid           = target->getClass();
             muteTime          = target->GetSession()->m_muteTime;
             mapId             = target->GetMapId();
             areaId            = target->GetAreaId();
             alive             = target->IsAlive() ? handler->GetTrinityString(LANG_YES) : handler->GetTrinityString(LANG_NO);
-            gender            = target->GetNativeGender();
+            gender            = target->getGender();
             phase             = target->GetPhaseMask();
         }
         // get additional information from DB
@@ -1911,7 +1911,7 @@ public:
             uint32 const gridId = Trinity::ComputeGridCoord(player->GetPositionX(), player->GetPositionY()).GetId();
             for (RespawnInfo* info : data)
                 if (info->gridId == gridId)
-                    player->GetMap()->RemoveRespawnTime(info, true);
+                    player->GetMap()->ForceRespawn(info->type, info->spawnId);
         }
 
         return true;

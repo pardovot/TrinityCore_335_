@@ -125,7 +125,6 @@ bool HandleNpcDespawnGroup(ChatHandler* handler, char const* args)
     return true;
 }
 
-using namespace Trinity::ChatCommands;
 class npc_commandscript : public CommandScript
 {
 public:
@@ -416,40 +415,48 @@ public:
         return true;
     }
 
-    static bool HandleNpcDeleteCommand(ChatHandler* handler, Optional<Variant<Hyperlink<creature>, ObjectGuid::LowType>> spawnIdArg)
+    static bool HandleNpcDeleteCommand(ChatHandler* handler, char const* args)
     {
-        ObjectGuid::LowType spawnId;
-        if (spawnIdArg)
-            spawnId = *spawnIdArg;
-        else
-        {
-            Creature* creature = handler->getSelectedCreature();
-            if (!creature || creature->IsPet() || creature->IsTotem())
-            {
-                handler->SendSysMessage(LANG_SELECT_CREATURE);
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
-            if (TempSummon* summon = creature->ToTempSummon())
-            {
-                summon->UnSummon();
-                handler->SendSysMessage(LANG_COMMAND_DELCREATMESSAGE);
-                return true;
-            }
-            spawnId = creature->GetSpawnId();
-        }
+        Creature* creature = nullptr;
 
-        if (Creature::DeleteFromDB(spawnId))
+        if (*args)
         {
-            handler->SendSysMessage(LANG_COMMAND_DELCREATMESSAGE);
-            return true;
+            // number or [name] Shift-click form |color|Hcreature:creature_guid|h[name]|h|r
+            char* cId = handler->extractKeyFromLink((char*)args, "Hcreature");
+            if (!cId)
+                return false;
+
+            ObjectGuid::LowType lowguid = atoul(cId);
+            if (!lowguid)
+                return false;
+            // force respawn to make sure we find something
+            handler->GetSession()->GetPlayer()->GetMap()->ForceRespawn(SPAWN_TYPE_CREATURE, lowguid);
+            // then try to find it
+            creature = handler->GetCreatureFromPlayerMapByDbGuid(lowguid);
         }
         else
+            creature = handler->getSelectedCreature();
+
+        if (!creature || creature->IsPet() || creature->IsTotem())
         {
-            handler->PSendSysMessage(LANG_COMMAND_CREATGUIDNOTFOUND, spawnId);
+            handler->SendSysMessage(LANG_SELECT_CREATURE);
             handler->SetSentErrorMessage(true);
             return false;
         }
+
+        if (TempSummon* summon = creature->ToTempSummon())
+            summon->UnSummon();
+        else
+        {
+            // Delete the creature
+            creature->CombatStop();
+            creature->DeleteFromDB();
+            creature->AddObjectToRemoveList();
+        }
+
+        handler->SendSysMessage(LANG_COMMAND_DELCREATMESSAGE);
+
+        return true;
     }
 
     //del item from vendor list
@@ -649,7 +656,7 @@ public:
             handler->PSendSysMessage(LANG_SPAWNINFO_GROUP_ID, groupData->name.c_str(), groupData->groupId, groupData->flags, target->GetMap()->IsSpawnGroupActive(groupData->groupId));
         }
         handler->PSendSysMessage(LANG_SPAWNINFO_COMPATIBILITY_MODE, target->GetRespawnCompatibilityMode());
-        handler->PSendSysMessage(LANG_NPCINFO_LEVEL, target->GetLevel());
+        handler->PSendSysMessage(LANG_NPCINFO_LEVEL, target->getLevel());
         handler->PSendSysMessage(LANG_NPCINFO_EQUIPMENT, target->GetCurrentEquipmentId(), target->GetOriginalEquipmentId());
         handler->PSendSysMessage(LANG_NPCINFO_HEALTH, target->GetCreateHealth(), target->GetMaxHealth(), target->GetHealth());
         handler->PSendSysMessage(LANG_NPCINFO_MOVEMENT_DATA, target->GetMovementTemplate().ToString().c_str());
@@ -1336,7 +1343,7 @@ public:
         pet->SetReactState(REACT_DEFENSIVE);
 
         // calculate proper level
-        uint8 level = std::max<uint8>(player->GetLevel()-5, creatureTarget->GetLevel());
+        uint8 level = std::max<uint8>(player->getLevel()-5, creatureTarget->getLevel());
 
         // prepare visual effect for levelup
         pet->SetUInt32Value(UNIT_FIELD_LEVEL, level - 1);

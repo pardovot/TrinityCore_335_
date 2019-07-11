@@ -647,7 +647,7 @@ PlayerAI::TargetedSpell SimpleCharmedPlayerAI::SelectAppropriateCastForSpec()
 {
     PossibleSpellVector spells;
 
-    switch (me->GetClass())
+    switch (me->getClass())
     {
         case CLASS_WARRIOR:
             if (!me->IsWithinMeleeRange(me->GetVictim()))

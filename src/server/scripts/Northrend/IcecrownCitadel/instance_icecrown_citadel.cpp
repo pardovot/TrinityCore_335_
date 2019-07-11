@@ -22,6 +22,7 @@
 #include "InstanceScript.h"
 #include "Map.h"
 #include "ObjectMgr.h"
+#include "Pet.h"
 #include "Player.h"
 #include "PoolMgr.h"
 #include "ScriptMgr.h"
@@ -1325,20 +1326,21 @@ class instance_icecrown_citadel : public InstanceMapScript
 
             void ReadSaveDataMore(std::istringstream& data) override
             {
-                uint32 temp = 0;
-
                 data >> HeroicAttempts;
 
+                uint32 temp = 0;
                 data >> temp;
-                ColdflameJetsState = temp == DONE ? DONE : NOT_STARTED;
+                if (temp == IN_PROGRESS)
+                    ColdflameJetsState = NOT_STARTED;
+                else
+                    ColdflameJetsState = temp ? DONE : NOT_STARTED;
 
                 data >> temp;
-                BloodQuickeningState = temp == DONE ? DONE : NOT_STARTED;
-
+                BloodQuickeningState = temp ? DONE : NOT_STARTED;   // DONE means finished (not success/fail)
                 data >> BloodQuickeningMinutes;
 
                 data >> temp;
-                UpperSpireTeleporterActiveState = temp == DONE ? DONE : NOT_STARTED;
+                UpperSpireTeleporterActiveState = temp ? DONE : NOT_STARTED;
             }
 
             void Update(uint32 diff) override

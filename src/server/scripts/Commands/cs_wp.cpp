@@ -632,27 +632,21 @@ public:
         {
             handler->PSendSysMessage("|cff00ff00DEBUG: wp modify del, PathID: |r|cff00ffff%u|r", pathid);
 
-            if (Creature::DeleteFromDB(target->GetSpawnId()))
-            {
-                stmt = WorldDatabase.GetPreparedStatement(WORLD_DEL_WAYPOINT_DATA);
-                stmt->setUInt32(0, pathid);
-                stmt->setUInt32(1, point);
-                WorldDatabase.Execute(stmt);
+            target->DeleteFromDB();
+            target->AddObjectToRemoveList();
 
-                stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_WAYPOINT_DATA_POINT);
-                stmt->setUInt32(0, pathid);
-                stmt->setUInt32(1, point);
-                WorldDatabase.Execute(stmt);
+            stmt = WorldDatabase.GetPreparedStatement(WORLD_DEL_WAYPOINT_DATA);
+            stmt->setUInt32(0, pathid);
+            stmt->setUInt32(1, point);
+            WorldDatabase.Execute(stmt);
 
-                handler->SendSysMessage(LANG_WAYPOINT_REMOVED);
-                return true;
-            }
-            else
-            {
-                handler->SendSysMessage(LANG_WAYPOINT_NOTREMOVED);
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
+            stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_WAYPOINT_DATA_POINT);
+            stmt->setUInt32(0, pathid);
+            stmt->setUInt32(1, point);
+            WorldDatabase.Execute(stmt);
+
+            handler->PSendSysMessage(LANG_WAYPOINT_REMOVED);
+            return true;
         }                                                       // del
 
         if (show == "move")
@@ -664,12 +658,8 @@ public:
             // What to do:
             // Move the visual spawnpoint
             // Respawn the owner of the waypoints
-            if (!Creature::DeleteFromDB(target->GetSpawnId()))
-            {
-                handler->PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, VISUAL_WAYPOINT);
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
+            target->DeleteFromDB();
+            target->AddObjectToRemoveList();
 
             // re-create
             Creature* wpCreature = new Creature();
@@ -840,10 +830,22 @@ public:
                 {
                     Field* fields = result2->Fetch();
                     uint32 wpguid = fields[0].GetUInt32();
-                    if (!Creature::DeleteFromDB(wpguid))
+                    Creature* creature = handler->GetCreatureFromPlayerMapByDbGuid(wpguid);
+
+                    if (!creature)
                     {
                         handler->PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, wpguid);
                         hasError = true;
+
+                        stmt = WorldDatabase.GetPreparedStatement(WORLD_DEL_CREATURE);
+                        stmt->setUInt32(0, wpguid);
+                        WorldDatabase.Execute(stmt);
+                    }
+                    else
+                    {
+                        creature->CombatStop();
+                        creature->DeleteFromDB();
+                        creature->AddObjectToRemoveList();
                     }
 
                 }
@@ -1026,10 +1028,21 @@ public:
                 Field* fields = result->Fetch();
                 ObjectGuid::LowType lowguid = fields[0].GetUInt32();
 
-                if (!Creature::DeleteFromDB(lowguid))
+                Creature* creature = handler->GetCreatureFromPlayerMapByDbGuid(lowguid);
+                if (!creature)
                 {
                     handler->PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, lowguid);
                     hasError = true;
+
+                    stmt = WorldDatabase.GetPreparedStatement(WORLD_DEL_CREATURE);
+                    stmt->setUInt32(0, lowguid);
+                    WorldDatabase.Execute(stmt);
+                }
+                else
+                {
+                    creature->CombatStop();
+                    creature->DeleteFromDB();
+                    creature->AddObjectToRemoveList();
                 }
             }
             while (result->NextRow());

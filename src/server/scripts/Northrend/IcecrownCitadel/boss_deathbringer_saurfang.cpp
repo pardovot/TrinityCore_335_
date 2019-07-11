@@ -360,7 +360,7 @@ class boss_deathbringer_saurfang : public CreatureScript
                 if (!_frenzied && HealthBelowPct(31)) // AT 30%, not below
                 {
                     _frenzied = true;
-                    DoCast(me, SPELL_FRENZY, true);
+                    DoCast(me, SPELL_FRENZY);
                     Talk(SAY_FRENZY);
                 }
 
