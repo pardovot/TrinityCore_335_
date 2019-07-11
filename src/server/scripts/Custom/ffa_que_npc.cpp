@@ -9,13 +9,16 @@
 #include "WorldSession.h"
 #include "World.h"
 #include <ctime>
+#include "Log.h"
 
-#define JOIN_QUE         "Join que"
-#define LEAVE_QUE        "Leave que"
-#define CURRENT_STATUS   "Que status"
-#define ACCEPT_QUE       "Yes"
-#define DECLINE_QUE      "No"
-#define ASK_ME_LATER     "Ask me later"
+#define JOIN_QUE              "Join que"
+#define LEAVE_QUE             "Leave que"
+#define CURRENT_STATUS        "Que status"
+#define ACCEPT_QUE            "Yes"
+#define DECLINE_QUE           "No"
+#define ASK_ME_LATER          "Ask me later"
+#define ARE_YOU_SURE          "Yes, I want to leave que"
+#define REGRET_DECLINE        "No, I want to enter BG"
 
 enum Options {
     JOIN_QUE_ACTION = 1,
@@ -28,7 +31,7 @@ enum Options {
 
 enum Misc {
     MAP_ID = 1,
-    QUE_START_COUNTDOWN = 60,
+    //QUE_START_COUNTDOWN = 60,
     MIN_PLAYERS = 10,
     ASK_ME_LATER_DELAY = 30,
     CHECK_DISCONNECT_DELAY = 60,
@@ -70,6 +73,14 @@ public:
                 return _askMeLatertime;
             }
 
+            uint32 GetSendAcceptAgainTime() {
+                return _sendAcceptAgainTime;
+            }
+
+            void SetSendAcceptAgain(uint32 sendAcceptAgainTime) {
+                _sendAcceptAgainTime = sendAcceptAgainTime;
+            }
+
             void SetOfflineTime(uint32 offlineTime) {
                 _offlineTime = offlineTime;
             }
@@ -78,22 +89,44 @@ public:
                 _askMeLatertime = askMeLatertime;
             }
 
+            void SetHasPlayerAnswered(bool hasPlayerAnswered) {
+                _hasPlayerAnswered = hasPlayerAnswered;
+            }
+
+            bool GetHasPlayerAnswered() {
+                return _hasPlayerAnswered;
+            }
+
+            void SetSendAcceptAgainTime(uint32 sendAcceptAgainTime) {
+                _sendAcceptAgainTime = sendAcceptAgainTime;
+            }
+
+            void SetHasEnteredBG(bool hasEnteredBG) {
+                _hasEnteredBG = hasEnteredBG;
+            }
+
+            bool GetHasEnteredBG() {
+                return _hasEnteredBG;
+            }
+
         private:
             Player* _player;
             uint32 _offlineTime = 0;
             uint32 _askMeLatertime = 0;
+            uint32 _sendAcceptAgainTime = 0;
+            bool _hasEnteredBG = false;
             bool _hasAcceptSent = false;
+            bool _hasPlayerAnswered = false;
         };
 
         void UpdateAI(uint32 diff) override {
             for (QuedPlayer* quedPlayer : _quedPlayers) {
                 CheckDisconnectedPlayers(quedPlayer);
                 if (IsQueReady()) {
+                    CheckAcceptSent(quedPlayer);
                     CheckAskMeLater(quedPlayer);
+                    CheckSendAcceptAgain(quedPlayer);
                 }
-            }
-            if (IsQueReady()) {
-                SendAcceptToAll();
             }
         }
 
@@ -131,20 +164,23 @@ public:
                 CloseGossipMenuFor(player);
                 break;
             case QUE_STATUS_ACTION:
-                me->Say("Amount of players in que: " + std::to_string(AmountOfPlayersInQue()), LANG_UNIVERSAL);
+                ChatHandler(player->GetSession()).SendSysMessage(("Amount of players in que: " + std::to_string(AmountOfPlayersInQue())).c_str());
                 ClearGossipMenuFor(player);
                 CloseGossipMenuFor(player);
                 break;
             case ACCEPT_QUE_ACTION:
+                TeleportPlayerToBG(player);
+                GetQuedPlayer(player)->SetHasPlayerAnswered(true);
                 break;
             case DECLINE_QUE_ACTION:
+                RemovePlayerFromQue(player);
+                GetQuedPlayer(player)->SetHasPlayerAnswered(true);
                 break;
             case ASK_ME_LATER_ACTION:
                 GetQuedPlayer(player)->SetAskMeLaterTime(std::time(0));
                 ClearGossipMenuFor(player);
                 CloseGossipMenuFor(player);
                 break;
-
             }
             return true;
         }
@@ -179,28 +215,50 @@ public:
             return false;
         }
 
-        void SendAcceptToAll() {
-            for (QuedPlayer* quedPlayer : _quedPlayers) {
-                if (!quedPlayer->HasAcceptSent()) {
+        void CheckSendAcceptAgain(QuedPlayer* quedPlayer) {
+            //Say(std::to_string(quedPlayer->GetSendAcceptAgainTime() + SEND_ACCEPT_DELAY <= std::time(0)));
+            //Say(std::to_string(quedPlayer->GetHasPlayerAnswered()));
+            //if (quedPlayer->GetSendAcceptAgainTime() + SEND_ACCEPT_DELAY <= std::time(0)) {
+            if (!quedPlayer->GetHasPlayerAnswered() && quedPlayer->GetSendAcceptAgainTime() + SEND_ACCEPT_DELAY <= std::time(0)) {
                     SendAcceptTo(quedPlayer);
-                }
             }
         }
 
-        bool SendAcceptTo(QuedPlayer* quedPlayer) {
-            quedPlayer->SetHasAcceptSent(true);
-            Player* player = quedPlayer->GetPlayer();
-            ClearGossipMenuFor(player);
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, ACCEPT_QUE, GOSSIP_SENDER_MAIN, ACCEPT_QUE_ACTION);
-            SendGossipMenuFor(player, ACCEPT_QUE_ACTION, me->GetGUID());
+        bool CheckAcceptSent(QuedPlayer* quedPlayer) {
+            if (!quedPlayer->HasAcceptSent()) {
+                SendAcceptTo(quedPlayer);
+                return true;
+            }
+            return false;
+        }
 
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, DECLINE_QUE, GOSSIP_SENDER_MAIN, DECLINE_QUE_ACTION);
+        bool SendAcceptTo(QuedPlayer* quedPlayer) {
+            if (!quedPlayer->HasAcceptSent() || quedPlayer->GetAskMeLaterTime() != 0 || quedPlayer->GetSendAcceptAgainTime() != 0) {
+                quedPlayer->SetHasAcceptSent(true);
+                Player* player = quedPlayer->GetPlayer();
+                ClearGossipMenuFor(player);
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, ACCEPT_QUE, GOSSIP_SENDER_MAIN, ACCEPT_QUE_ACTION);
+                SendGossipMenuFor(player, ACCEPT_QUE_ACTION, me->GetGUID());
+
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, DECLINE_QUE, GOSSIP_SENDER_MAIN, DECLINE_QUE_ACTION);
+                SendGossipMenuFor(player, DECLINE_QUE_ACTION, me->GetGUID());
+
+                AddGossipItemFor(player, GOSSIP_ICON_CHAT, ASK_ME_LATER, GOSSIP_SENDER_MAIN, ASK_ME_LATER_ACTION);
+                SendGossipMenuFor(player, ASK_ME_LATER_ACTION, me->GetGUID());
+                quedPlayer->SetHasAcceptSent(true);
+                quedPlayer->SetSendAcceptAgainTime(std::time(0));
+                return true;
+            }
+            return false;
+        }
+
+        void PlayerDeclineQue(Player* player) {
+            ClearGossipMenuFor(player);
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, ARE_YOU_SURE, GOSSIP_SENDER_MAIN, DECLINE_QUE_ACTION);
             SendGossipMenuFor(player, DECLINE_QUE_ACTION, me->GetGUID());
 
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, ASK_ME_LATER, GOSSIP_SENDER_MAIN, ASK_ME_LATER_ACTION);
-            SendGossipMenuFor(player, ASK_ME_LATER_ACTION, me->GetGUID());
-            quedPlayer->SetHasAcceptSent(true);
-            return true;
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, REGRET_DECLINE, GOSSIP_SENDER_MAIN, ACCEPT_QUE_ACTION);
+            SendGossipMenuFor(player, ACCEPT_QUE_ACTION, me->GetGUID());
         }
 
         bool IsPlayerInQue(Player* player) {
@@ -218,6 +276,9 @@ public:
         }
 
         bool TeleportPlayerToBG(Player* player) {
+            QuedPlayer* quedPlayer = GetQuedPlayer(player);
+            quedPlayer->SetHasEnteredBG(true);
+            quedPlayer->SetHasAcceptSent(std::time(0));
             if (player) {
                 player->TeleportTo(MAP_ID, _teleportPosition.GetPositionX(), _teleportPosition.GetPositionY(), _teleportPosition.GetPositionZ(), _teleportPosition.GetOrientation());
                 return true;
@@ -263,11 +324,11 @@ public:
 
     private:
         std::vector<QuedPlayer*> _quedPlayers;
-        float _positionX = 4564.0f;
-        float _positionY = -3098.0f;
-        float _positionZ = 995.0f;
-        float _orientation = 0;
-        Position _teleportPosition = { _positionX, _positionY, _positionZ, _orientation };
+        float const _positionX = 4564.0f;
+        float const _positionY = -3098.0f;
+        float const _positionZ = 995.0f;
+        float const _orientation = 0;
+        Position const _teleportPosition = { _positionX, _positionY, _positionZ, _orientation };
     };
 
     CreatureAI* GetAI(Creature* creature) const {
