@@ -164,6 +164,9 @@ public:
                 CloseGossipMenuFor(player);
                 break;
             case QUE_STATUS_ACTION:
+                if (AmountOfPlayersInQue() >= MIN_PLAYERS) {
+                    ChatHandler(player->GetSession()).SendSysMessage("Battleground has already started.");
+                }
                 ChatHandler(player->GetSession()).SendSysMessage(("Amount of players in que: " + std::to_string(AmountOfPlayersInQue())).c_str());
                 ClearGossipMenuFor(player);
                 CloseGossipMenuFor(player);
@@ -174,7 +177,8 @@ public:
                 break;
             case DECLINE_QUE_ACTION:
                 RemovePlayerFromQue(player);
-                GetQuedPlayer(player)->SetHasPlayerAnswered(true);
+                ClearGossipMenuFor(player);
+                CloseGossipMenuFor(player);
                 break;
             case ASK_ME_LATER_ACTION:
                 GetQuedPlayer(player)->SetAskMeLaterTime(std::time(0));
