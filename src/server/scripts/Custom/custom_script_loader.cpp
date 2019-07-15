@@ -15,17 +15,18 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// This is where scripts' loading functions should be declared:
+ // This is where scripts' loading functions should be declared:
 
 
-// The name of this function should match:
-// void Add${NameOfDirectory}Scripts()
+ // The name of this function should match:
+ // void Add${NameOfDirectory}Scripts()
 
 void AddSC_custom_script();
 void AddSC_custom_handler();
+void AddSC_ffa_bg_commands();
 
-void AddCustomScripts()
-{
+void AddCustomScripts() {
     AddSC_custom_script();
     AddSC_custom_handler();
+    AddSC_ffa_bg_commands();
 }

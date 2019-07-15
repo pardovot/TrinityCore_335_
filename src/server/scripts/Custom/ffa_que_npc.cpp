@@ -39,6 +39,10 @@ enum Misc {
     WAIT_FOR_BG_START = 180
 };
 
+enum Spells {
+    BG_SPELL_DESERTER = 26013
+};
+
 class ffa_que_npc : public CreatureScript {
 public:
     ffa_que_npc() : CreatureScript("custom_script") {}
@@ -190,6 +194,14 @@ public:
         }
 
         bool AddPlayerToQue(Player* player) {
+            if (!player) {
+                return false;
+            }
+
+            if (player->HasAura(BG_SPELL_DESERTER)) {
+                ChatHandler(player->GetSession()).SendSysMessage("You're deserter and cannot join for que!");
+            }
+
             QuedPlayer* quedPlayer = GetQuedPlayer(player);
             if (!(std::find(_quedPlayers.begin(), _quedPlayers.end(), quedPlayer) != _quedPlayers.end())) {
                 _quedPlayers.push_back(new QuedPlayer(player));
