@@ -200,6 +200,7 @@ public:
 
             if (player->HasAura(BG_SPELL_DESERTER)) {
                 ChatHandler(player->GetSession()).SendSysMessage("You're deserter and cannot join for que!");
+                return false;
             }
 
             QuedPlayer* quedPlayer = GetQuedPlayer(player);
