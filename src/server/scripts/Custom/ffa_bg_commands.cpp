@@ -12,6 +12,9 @@
 
 enum misc {
     LEAVE_COMMAND = 200,
+    JOIN_QUE = 201,
+    LEAVE_QUE = 202,
+    QUE_STATUS = 203,
     BG_ZONE_ID = 616,
     LEAVE_SICKNESS_TIME = 900
 };
@@ -29,10 +32,20 @@ public:
 
         static std::vector<ChatCommand> commands =
         {
-            { "leave", LEAVE_COMMAND, false, &HandleLeaveCommand, ""}
+            { "leave", LEAVE_COMMAND, false, &HandleLeaveCommand, ""},
+            { "joinque", JOIN_QUE, false, &HandleJoinQueCommand, ""},
+            { "leaveque", LEAVE_QUE, false, &HandleLeaveQueCommand, ""}
         };
 
         return commands;
+    }
+
+    static bool HandleJoinQueCommand(ChatHandler* handler, const char* args) {
+        return false;
+    }
+
+    static bool HandleLeaveQueCommand(ChatHandler* handler, const char* args) {
+        return false;
     }
 
     static bool HandleLeaveCommand(ChatHandler* handler, const char* args) {
@@ -40,6 +53,7 @@ public:
         if (player->GetZoneId() == BG_ZONE_ID) {
             Say(player, std::string("Leaving BG").c_str());
             HandleDeserterAdd(handler);
+            player->Recall();
             return true;
         } else {
             ThereIsNoSuchCommand(player);

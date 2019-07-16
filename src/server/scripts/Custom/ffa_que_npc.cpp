@@ -335,11 +335,9 @@ public:
             QuedPlayer* quedPlayer = GetQuedPlayer(player);
             quedPlayer->SetHasEnteredBG(true);
             quedPlayer->SetHasAcceptSent(std::time(0));
-            if (player) {
-                player->TeleportTo(MAP_ID, _teleportPosition.GetPositionX(), _teleportPosition.GetPositionY(), _teleportPosition.GetPositionZ(), _teleportPosition.GetOrientation());
-                return true;
-            }
-            return false;
+            player->SaveRecallPosition();
+            player->TeleportTo(MAP_ID, _teleportPosition.GetPositionX(), _teleportPosition.GetPositionY(), _teleportPosition.GetPositionZ(), _teleportPosition.GetOrientation());
+            return true;
         }
 
         void CheckDisconnectedPlayers(QuedPlayer* quedPlayer) {
