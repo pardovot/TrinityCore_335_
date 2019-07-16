@@ -54,7 +54,9 @@ public:
         struct QuedPlayer {
         public:
             QuedPlayer(Player* player) {
-                this->_player = player;
+                if (player) {
+                    this->_player = player;
+                }
             }
 
             Player* GetPlayer() {
@@ -135,6 +137,10 @@ public:
         }
 
         bool GossipHello(Player* player) override {
+            if (!player) {
+                return false;
+            }
+
             me->SetFacingToObject((Unit*)player);
 
             // Join que gossip
@@ -154,6 +160,10 @@ public:
         }
 
         bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override {
+            if (!player) {
+                return false;
+            }
+
             uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
             ClearGossipMenuFor(player);
             switch (action) {
@@ -214,6 +224,10 @@ public:
         }
 
         bool RemovePlayerFromQue(Player* player) {
+            if (!player) {
+                return false;
+            }
+
             QuedPlayer* quedPlayer = GetQuedPlayer(player);
             if ((std::find(_quedPlayers.begin(), _quedPlayers.end(), quedPlayer) != _quedPlayers.end())) {
                 _quedPlayers.erase(std::remove(_quedPlayers.begin(), _quedPlayers.end(), quedPlayer), _quedPlayers.end());
@@ -225,6 +239,10 @@ public:
         }
 
         bool RemovePlayerFromQueOnDisconnect(QuedPlayer* quedPlayer) {
+            if (!quedPlayer->GetPlayer()) {
+                return false;
+            }
+
             if ((std::find(_quedPlayers.begin(), _quedPlayers.end(), quedPlayer) != _quedPlayers.end())) {
                 _quedPlayers.erase(std::remove(_quedPlayers.begin(), _quedPlayers.end(), quedPlayer), _quedPlayers.end());
                 return true;
@@ -233,15 +251,20 @@ public:
         }
 
         void CheckSendAcceptAgain(QuedPlayer* quedPlayer) {
-            //Say(std::to_string(quedPlayer->GetSendAcceptAgainTime() + SEND_ACCEPT_DELAY <= std::time(0)));
-            //Say(std::to_string(quedPlayer->GetHasPlayerAnswered()));
-            //if (quedPlayer->GetSendAcceptAgainTime() + SEND_ACCEPT_DELAY <= std::time(0)) {
+            if (!quedPlayer->GetPlayer()) {
+                return;
+            }
+
             if (!quedPlayer->GetHasPlayerAnswered() && quedPlayer->GetSendAcceptAgainTime() + SEND_ACCEPT_DELAY <= std::time(0)) {
-                    SendAcceptTo(quedPlayer);
+                SendAcceptTo(quedPlayer);
             }
         }
 
         bool CheckAcceptSent(QuedPlayer* quedPlayer) {
+            if (!quedPlayer->GetPlayer()) {
+                return false;
+            }
+
             if (!quedPlayer->HasAcceptSent()) {
                 SendAcceptTo(quedPlayer);
                 return true;
@@ -250,6 +273,10 @@ public:
         }
 
         bool SendAcceptTo(QuedPlayer* quedPlayer) {
+            if (!quedPlayer->GetPlayer()) {
+                return false;
+            }
+
             if (!quedPlayer->HasAcceptSent() || quedPlayer->GetAskMeLaterTime() != 0 || quedPlayer->GetSendAcceptAgainTime() != 0) {
                 quedPlayer->SetHasAcceptSent(true);
                 Player* player = quedPlayer->GetPlayer();
@@ -270,6 +297,10 @@ public:
         }
 
         void PlayerDeclineQue(Player* player) {
+            if (!player) {
+                return;
+            }
+
             ClearGossipMenuFor(player);
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, ARE_YOU_SURE, GOSSIP_SENDER_MAIN, DECLINE_QUE_ACTION);
             SendGossipMenuFor(player, DECLINE_QUE_ACTION, me->GetGUID());
@@ -279,6 +310,10 @@ public:
         }
 
         bool IsPlayerInQue(Player* player) {
+            if (!player) {
+                return false;
+            }
+
             QuedPlayer* quedPlayer = GetQuedPlayer(player);
             return std::find(_quedPlayers.begin(), _quedPlayers.end(), quedPlayer) != _quedPlayers.end();
         }
@@ -293,6 +328,10 @@ public:
         }
 
         bool TeleportPlayerToBG(Player* player) {
+            if (!player) {
+                return false;
+            }
+
             QuedPlayer* quedPlayer = GetQuedPlayer(player);
             quedPlayer->SetHasEnteredBG(true);
             quedPlayer->SetHasAcceptSent(std::time(0));
@@ -304,6 +343,10 @@ public:
         }
 
         void CheckDisconnectedPlayers(QuedPlayer* quedPlayer) {
+            if (!quedPlayer->GetPlayer()) {
+                return;
+            }
+
             if (!quedPlayer->GetPlayer()->IsInWorld() && quedPlayer->GetOfflineTime() == 0) {
                 quedPlayer->SetOfflineTime(std::time(0));
             }
@@ -316,6 +359,10 @@ public:
         }
 
         void CheckAskMeLater(QuedPlayer* quedPlayer) {
+            if (!quedPlayer->GetPlayer()) {
+                return;
+            }
+
             if (quedPlayer->GetAskMeLaterTime() != 0) {
                 if (quedPlayer->GetAskMeLaterTime() + ASK_ME_LATER_DELAY <= std::time(0)) {
                     SendAcceptTo(quedPlayer);
