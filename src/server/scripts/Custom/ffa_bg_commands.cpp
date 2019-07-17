@@ -32,20 +32,10 @@ public:
 
         static std::vector<ChatCommand> commands =
         {
-            { "leave", LEAVE_COMMAND, false, &HandleLeaveCommand, ""},
-            { "joinque", JOIN_QUE, false, &HandleJoinQueCommand, ""},
-            { "leaveque", LEAVE_QUE, false, &HandleLeaveQueCommand, ""}
+            { "leave", LEAVE_COMMAND, false, &HandleLeaveCommand, ""}
         };
 
         return commands;
-    }
-
-    static bool HandleJoinQueCommand(ChatHandler* handler, const char* args) {
-        return false;
-    }
-
-    static bool HandleLeaveQueCommand(ChatHandler* handler, const char* args) {
-        return false;
     }
 
     static bool HandleLeaveCommand(ChatHandler* handler, const char* args) {
