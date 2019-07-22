@@ -127,6 +127,7 @@ public:
 
         void UpdateAI(uint32 diff) override {
             for (QuedPlayer* quedPlayer : _quedPlayers) {
+                AddPlayerToVector(quedPlayer->GetPlayer());
                 CheckDisconnectedPlayers(quedPlayer);
                 if (IsQueReady()) {
                     CheckAcceptSent(quedPlayer);
@@ -398,6 +399,16 @@ public:
     }
 
 };
+
+bool AddPlayerToVector(Player* player) {
+    if (!(std::find(playersInQue.begin(), playersInQue.end(), player) != playersInQue.end())) {
+        playersInQue.push_back(player);
+        return true;
+    }
+    return false;
+}
+
+std::vector<Player*> playersInQue;
 
 void AddSC_custom_script() {
     new ffa_que_npc();
